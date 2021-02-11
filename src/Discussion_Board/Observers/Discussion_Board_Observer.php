@@ -17,6 +17,14 @@ class Discussion_Board_Observer extends Model_Observer {
 
         $this->log_activity( $resource, 'create_discussion_board', 'create', $meta );
     }
+    public function deleting( $resource ) {
+
+        $meta = [
+            'deleted_discussion_board_title' => $resource->title,
+        ];
+
+        $this->log_activity( $resource, 'delete_discussion_board', 'delete', $meta );
+    }
 
     public function updated( $resource ) {
         $this->call_attribute_methods( $resource );
@@ -50,7 +58,7 @@ class Discussion_Board_Observer extends Model_Observer {
 
     private function log_activity( Discussion_Board $item, $action, $action_type, $meta = null ) {
         Activity::create([
-            'actor_id'      => $item->updated_by,
+            'actor_id'      => get_current_user_id(),
             'action'        => $action,
             'action_type'   => $action_type,
             'resource_id'   => $item->id,

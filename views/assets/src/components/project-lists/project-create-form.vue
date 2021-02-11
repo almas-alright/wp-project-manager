@@ -19,25 +19,26 @@
                 <!-- v-model="project_description" -->
                 <textarea v-model="project_description"  class="pm-project-description" id="" rows="5" :placeholder="details_of_project"></textarea>
             </div>
-
-            <div class="pm-form-item pm-project-role" v-if="show_role_field">
-                <table>
-                    <tr v-for="projectUser in selectedUsers" :key="projectUser.id" v-if="current_user.data.ID != projectUser.id">
-                        <td>{{ projectUser.display_name }}</td>
-                        <td>
-                            <select  v-model="projectUser.roles.data[0].id" :disabled="is_project_creator(projectUser.id)">
-                                <option v-for="role in roles" :value="role.id" :key="role.id" >{{ role.title }}</option>
-                            </select>
-                        </td>
-                      
-                        <td>
-                            <a @click.prevent="deleteUser(projectUser)" v-if="!is_project_creator(projectUser.id)" hraf="#" class="pm-del-proj-role pm-assign-del-user">
-                                <span class="dashicons dashicons-trash"></span> 
-                                <span class="title">{{ __( 'Delete', 'wedevs-project-manager') }}</span>
-                            </a>
-                        </td>
-                    </tr>
-                </table>
+            <div class="pm-project-form-users-wrap">
+                <div class="pm-form-item pm-project-role" v-if="show_role_field">
+                    <table>
+                        <tr v-for="projectUser in selectedUsers" :key="projectUser.id">
+                            <td>{{ projectUser.display_name }}</td>
+                            <td>
+                                <select  v-model="projectUser.roles.data[0].id" :disabled="!canUserEdit(projectUser.id)">
+                                    <option v-for="role in roles" :value="role.id" :key="role.id" >{{ role.title }}</option>
+                                </select>
+                            </td>
+                          
+                            <td>
+                                <a @click.prevent="deleteUser(projectUser)" v-if="canUserEdit(projectUser.id)" hraf="#" class="pm-del-proj-role pm-assign-del-user">
+                                    <span class="dashicons dashicons-trash"></span> 
+                                    <!-- <span class="title">{{ __( 'Delete', 'wedevs-project-manager') }}</span> -->
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
             
             <div class="pm-form-item item project-users" v-if="show_role_field">
@@ -67,6 +68,29 @@
         </div>
     </div>
 </template>
+
+<style lang="less">
+    .pm-project-form {
+        .project-department {
+            label {
+                line-height: 1;
+                display: block;
+                margin-bottom: 5px;
+            }
+            select {
+                display: block;
+            }
+        }
+        .pm-project-form-users-wrap {
+            overflow: hidden;
+            .pm-project-role {
+                max-height: 150px;
+                overflow: scroll;
+            }
+        }
+    }
+
+</style>
 
 <script>
     import directive from './directive.js';
@@ -116,7 +140,15 @@
             },
 
             selectedUsers () {
-                return this.$root.$store.state.assignees;
+
+                if(!this.project.hasOwnProperty('assignees')) {
+                    return this.$store.state.assignees;
+                } else {
+                    var projects = this.$store.state.projects;
+                    var index = this.getIndex(projects, this.project.id, 'id');
+                    
+                    return projects[index].assignees.data;
+                }
             },
 
             project_category: {
@@ -151,11 +183,11 @@
         methods: {
 
             deleteUser (del_user) {
-                if ( this.is_project_creator(del_user.id) ) {
+                if ( !this.canUserEdit(del_user.id) ) {
                     return;
                 }
                 
-                this.$root.$store.commit(
+                this.$store.commit(
                     'afterDeleteUserFromProject', 
                     {
                         project_id: this.project_id,
@@ -163,14 +195,16 @@
                     }
                 );
             },
-            is_project_creator (user_id) {
-                if ( !this.project.hasOwnProperty('creator') ){
+            canUserEdit (user_id) {
+                if (this.has_manage_capability()) {
+                    return true;
+                }
+                
+                if (this.current_user.data.ID == user_id) {
                     return false;
                 }
 
-                if ( this.project.creator.data.id  == user_id ) {
-                    return true;
-                }
+                return true
 
             },
             /**
@@ -183,7 +217,7 @@
                 }
                 
                 if ( !this.project.title ) {
-                    pm.Toastr.error('Project title is required!');
+                    pm.Toastr.error(__('Project title is required!', 'wedevs-project-manager'));
                     return;
                 }
 
@@ -210,6 +244,11 @@
                     this.updateProject ( args );
                 } else {
                     args.callback = function(res) {
+                        // console.log(res.status);
+                        // if ( res.status !== 200 ) {
+                        //     self.show_spinner = false;
+                        //     return;
+                        // }
                         self.project.title = '';
                         self.project_cat = 0;
                         self.project.description = ''
@@ -245,7 +284,7 @@
                     this.$store.commit('setSeletedUser', []);
                     jQuery( "#pm-project-dialog" ).dialog('close'); 
                 }
-                this.showHideProjectForm(false)
+                this.showHideProjectForm(false);
             },
         }
     }

@@ -17,6 +17,7 @@ use WeDevs\PM\Category\Models\Category;
 use WeDevs\PM\Common\Traits\File_Attachment;
 use Illuminate\Pagination\Paginator;
 use WeDevs\PM\Common\Models\Meta;
+use WeDevs\PM\Task_List\Models\Task_List;
 
 class Project_Controller {
 
@@ -41,18 +42,17 @@ class Project_Controller {
 
 		$projects = $this->fetch_projects( $category, $status );
 
-		if( $project_transform == 'false' ) {
-			
-			wp_send_json_success( $projects->get()->toArray() );
-		}
-
 		$projects = apply_filters( 'pm_project_query', $projects, $request->get_params() );
 		$projects = $projects->orderBy(  pm_tb_prefix().'pm_projects.created_at', 'DESC' );
-		
-		if ( $per_page == '-1' || $per_page == 'all' ) {
-			$per_page = $projects->count();
-		}
 
+		if ( -1 === intval( $per_page ) || $per_page == 'all' ) {
+			$per_page = $projects->get()->count();
+		}
+		
+		if( $project_transform == 'false' ) {
+			wp_send_json_success( $projects->get()->toArray() );
+		}
+		
 		$projects = $projects->paginate( $per_page );
 
 		$project_collection = $projects->getCollection();
@@ -188,7 +188,9 @@ class Project_Controller {
 			'user_id' => wp_get_current_user()->ID,
 			'role_id' => 1, // 1 for manager
 		];
-
+		//craeate list inbox when create project
+		$this->create_list_inbox($project->id);
+		
 		if ( is_array( $assignees ) ) {
 			$this->assign_users( $project, $assignees );
 		}
@@ -313,7 +315,31 @@ class Project_Controller {
 		$response = $this->get_response( null, [ 'message' =>  __( "The project has been marked as favourite", 'wedevs-project-manager' ) ] );
 
         return $response;
-    }
+	}
+	
+	function create_list_inbox($project_id) {
+
+		$meta = Meta::firstOrCreate([
+			'entity_id'	=> $project_id,
+			'entity_type' => 'task_list',
+			'meta_key' => 'list-inbox',
+			'project_id' => $project_id,
+		]);
+
+		if ( empty( $meta->meta_value ) ) {
+
+			$list = Task_List::create([
+				'title' => __('Inbox', 'wedevs-project-manager'),
+				'description' => __('This is a system default task list. Any task without an assigned tasklist will appear here.', 'wedevs-project-manager'),
+				'order' => 999999,
+				'project_id' => $project_id,
+			]);
+
+			$meta->meta_value = $list->id;
+			$meta->save();
+
+		}
+	}
 
 
 }

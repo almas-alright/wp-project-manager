@@ -16,6 +16,13 @@ class Milestone_Observer extends Model_Observer {
 
         $this->log_activity( $resource, 'create_milestone', 'create', $meta );
     }
+    public function deleting( $resource ) {
+        $meta = [
+            'deleted_milestone_title' => $resource->title,
+        ];
+
+        $this->log_activity( $resource, 'delete_milestone', 'delete', $meta );
+    }
 
     public function updated( $resource ) {
         $this->call_attribute_methods( $resource );
@@ -49,7 +56,7 @@ class Milestone_Observer extends Model_Observer {
 
     private function log_activity( Milestone $item, $action, $action_type, $meta = null ) {
         Activity::create([
-            'actor_id'      => $item->updated_by,
+            'actor_id'      => get_current_user_id(),
             'action'        => $action,
             'action_type'   => $action_type,
             'resource_id'   => $item->id,

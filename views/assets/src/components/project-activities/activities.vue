@@ -2,6 +2,7 @@
     <div class="pm-wrap pm-front-end">
 
     <pm-header></pm-header>
+    <pm-heder-menu></pm-heder-menu>
 
     <div v-if="!isActivityFetched" class="pm-data-load-before" >
         <div class="loadmoreanimation">
@@ -15,7 +16,7 @@
         </div>
     </div>
 
-    <div v-if="isActivityFetched">
+    <div class="pm-activities" v-if="isActivityFetched">
         <ul v-if="activities.length" class="pm-activity-list">
             <li v-for="group in activities" :key="group.id" class="pm-row"> 
                 <div class="pm-activity-date pm-col-1 pm-sm-col-12">
@@ -28,7 +29,7 @@
                     <ul>
                         <li v-for="activity in group.activities" :key="activity.id" >
                             <div class="pm-col-8 pm-sm-col-12">
-                                <activity-parser :activity="activity"></activity-parser>
+                                <activity-parser :activity="activity" :page="'project'"></activity-parser>
                             </div>
                             <div class="date pm-col-4 pm-sm-col-12">
                                 <time :datetime="pmDateISO8601Format(activity.committed_at.date, activity.committed_at.time)" :title="pmDateISO8601Format(activity.committed_at.date, activity.committed_at.time)">
@@ -45,10 +46,18 @@
 
         <a v-if="total_activity>loaded_activities" href="#" @click.prevent="loadMore()" class="button pm-load-more">{{ __( 'Load More ...', 'wedevs-project-manager') }}</a>
         <span v-show="show_spinner" class="pm-spinner"></span>
-        <div v-if="!activities.length" class="no-activity" > {{ __( 'No activity fount', 'wedevs-project-manager') }} </div>
+        <div v-if="!activities.length" class="no-activity" > {{ __( 'No activity found.', 'wedevs-project-manager') }} </div>
     </div>
+
+    <router-view name="singleTask"></router-view>
 </div>
 </template>
+
+<style lang="less">
+    .pm-activities {
+        margin-top: 10px;
+    }
+</style>
 
 <script>
     import header from '@components/common/header.vue';
@@ -73,10 +82,15 @@
         },
         created () {
             this.activityQuery();
+            pmBus.$on('pm_after_close_single_task_modal', this.afterCloseSingleTaskModal);
+            pmBus.$on('pm_generate_task_url', this.generateTaskUrl);
         },
         watch: {
-            '$route' (route) { 
-                if(typeof route.params.current_page_number !== 'undefined') {
+            '$route' (to, from) {
+                if ( 'activity_single_task' == to.name || 'activity_single_task' == from.name ) {
+                    return;
+                }
+                if(typeof to.params.current_page_number !== 'undefined') {
                     this.activityQuery();
                 }else {
                     this.$store.state.projectActivities.activities = [];
@@ -132,7 +146,8 @@
             // }
         },
         components: {
-            'pm-header': header
+            'pm-header': header,
+            'single-task': pm.SingleTask,
         },
 
         methods: {
@@ -198,6 +213,43 @@
                     self.show_spinner = false;
                     self.isActivityFetched = true;
                 });
+            },
+            generateTaskUrl (task) {
+                var url = this.$router.resolve({
+                    name: 'lists_single_task',
+                    params: {
+                        task_id: task.id,
+                        project_id: task.project_id,
+                    }
+                }).href;
+                var url = PM_Vars.project_page + url;
+
+                //var url = PM_Vars.project_page + '#/projects/' + task.project_id + '/task-lists/' +task.task_list.data.id+ '/tasks/' + task.id;
+                this.copy(url);
+            },
+
+            afterCloseSingleTaskModal () {
+                var current_page_number = this.$route.params.current_page_number;
+
+                if (! current_page_number) {
+                    this.$router.push({
+                        name:'activities',
+                        params: {
+                            project_id : this.project_id
+                        }
+                    });
+                } else {
+                    this.$router.push({
+                        name:'activities_pagination',
+                        params: {
+                            project_id : this.project_id,
+                            current_page_number: current_page_number
+                        }
+                    });
+                }
+                
+                
+                
             }
         }
     }

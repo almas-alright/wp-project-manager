@@ -11,6 +11,7 @@ use League\Fractal\Resource\Collection as Collection;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use WeDevs\PM\Common\Traits\Transformer_Manager;
 use WeDevs\PM\Task_List\Transformers\Task_List_Transformer;
+use WeDevs\PM\Task_List\Transformers\Task_Transformer;
 use WeDevs\PM\Common\Models\Boardable;
 use WeDevs\PM\Common\Traits\Request_Filter;
 use WeDevs\PM\Milestone\Models\Milestone;
@@ -22,20 +23,29 @@ class Task_List_Controller {
     use Transformer_Manager, Request_Filter;
 
     public function index( WP_REST_Request $request ) {
+
         $project_id = $request->get_param( 'project_id' );
-        $per_page = $request->get_param( 'per_page' );
+        $per_page   = $request->get_param( 'per_page' );
+        $status     = $request->get_param( 'status' );
+        $list_id     = $request->get_param( 'list_id' ); //must be a array
         $per_page_from_settings = pm_get_settings( 'list_per_page' );
         $per_page_from_settings = $per_page_from_settings ? $per_page_from_settings : 15;
-        $per_page = $per_page ? $per_page : $per_page_from_settings;
+        $per_page               = $per_page ? $per_page : $per_page_from_settings;
         
         $page = $request->get_param( 'page' );
         $page = $page ? $page : 1;
-
+        $status = isset( $status ) ? intval( $status ) : 1;
+        
         Paginator::currentPageResolver(function () use ($page) {
             return $page;
         }); 
 
-        $task_lists = Task_List::where( 'project_id', $project_id);
+        $task_lists = Task_List::where( 'project_id', $project_id)
+            ->where( 'status', $status )
+            ->where( function($q) use( $list_id ) {
+                //if()
+            });
+
         $task_lists = apply_filters( "pm_task_list_index_query", $task_lists, $project_id, $request );
 
         if ( $per_page == '-1' ) {
@@ -46,13 +56,23 @@ class Task_List_Controller {
             ->paginate( $per_page );
 
         $task_list_collection = $task_lists->getCollection();
-
+        
         $resource = new Collection( $task_list_collection, new Task_List_Transformer );
         $resource->setPaginator( new IlluminatePaginatorAdapter( $task_lists ) );
 
         return $this->get_response( $resource );
     }
 
+    public function listInbox ( WP_REST_Request $request ) {
+        $project_id = $request->get_param( 'project_id' );
+        $tasks = Task::parent()->doesnthave('boardables')->where('project_id', $project_id)->get();
+
+        $resource = new Collection ( $tasks, new Task_Transformer );
+
+        return $this->get_response( $resource );
+
+    }
+    
     public function show( WP_REST_Request $request ) {
         $project_id   = $request->get_param( 'project_id' );
         $task_list_id = $request->get_param( 'task_list_id' );
@@ -77,9 +97,10 @@ class Task_List_Controller {
     public function store( WP_REST_Request $request ) {
         $data = $this->extract_non_empty_values( $request );
         $milestone_id = $request->get_param( 'milestone' );
+        $project_id = $request->get_param( 'project_id' );
 
         $milestone     = Milestone::find( $milestone_id );
-        $latest_order  = Task_List::latest_order();
+        $latest_order  = Task_List::latest_order($project_id);
         $data['order'] = $latest_order + 1;
         $task_list     = Task_List::create( $data );
 
@@ -94,7 +115,7 @@ class Task_List_Controller {
             'message' => pm_get_text('success_messages.task_list_created')
         ];
         $response = $this->get_response( $resource, $message );
-        do_action( 'cpm_tasklist_new', $task_list->id, $request->get_param( 'project_id' ), $request->get_params() );
+        do_action( 'cpm_tasklist_new', $task_list->id, $project_id, $request->get_params() );
         do_action( 'pm_after_new_task_list', $response, $request->get_params() );
         return $response;
     }
@@ -269,4 +290,22 @@ class Task_List_Controller {
 
         wp_send_json_success();
     }
+
+    public function list_search( WP_REST_Request $request ) {
+        global $wpdb;
+        $project_id  = $request->get_param( 'project_id' );
+        $title       = $request->get_param( 'title' );
+
+        $task_lists = Task_List::where( function($q) use( $title ) {
+            if ( !empty( $title ) ) {
+                $q->where('title', 'like', '%'.$title.'%');
+            } 
+        })
+        ->get();
+
+        $resource = new Collection( $task_lists, new Task_List_Transformer );
+        
+        return $this->get_response( $resource );
+    }
+
 }

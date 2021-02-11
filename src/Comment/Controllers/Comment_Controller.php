@@ -8,6 +8,7 @@ use League\Fractal\Resource\Item as Item;
 use League\Fractal\Resource\Collection as Collection;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use WeDevs\PM\Common\Traits\Transformer_Manager;
+use WeDevs\PM\Common\Traits\Last_activity;
 use WeDevs\PM\Comment\Transformers\Comment_Transformer;
 use WeDevs\PM\Common\Traits\Request_Filter;
 use WeDevs\PM\Comment\Models\Comment;
@@ -17,7 +18,7 @@ use WeDevs\PM\Common\Traits\File_Attachment;
 
 class Comment_Controller {
 
-    use Transformer_Manager, Request_Filter, File_Attachment;
+    use Transformer_Manager, Request_Filter, File_Attachment, Last_activity;
 
     public function index( WP_REST_Request $request ) {
         $project_id = $request->get_param( 'project_id' );
@@ -73,6 +74,9 @@ class Comment_Controller {
         $data       = $this->extract_non_empty_values( $request );
         $media_data = $request->get_file_params();
         $type       = $request->get_param('type');
+
+        $commentable_type = $request->get_param( 'commentable_type' );
+        $commentable_id = $request->get_param('commentable_id');
     
         $files      = array_key_exists( 'files', $media_data ) ? $media_data['files'] : null;
 
@@ -89,7 +93,8 @@ class Comment_Controller {
         $resource = new Item( $comment, new Comment_Transformer );
 
         $message = [
-            'message' => pm_get_text('success_messages.comment_created')
+            'message' => pm_get_text('success_messages.comment_created'),
+            'activity' => $this->last_activity( $commentable_type, $commentable_id ),
         ];
 
         do_action( 'cpm_comment_new', $comment->id , $request->get_param('project_id'), $request->get_params() );
@@ -128,7 +133,8 @@ class Comment_Controller {
         $resource = new Item( $comment, new Comment_Transformer );
 
         $message = [
-            'message' => pm_get_text('success_messages.comment_updated')
+            'message' => pm_get_text('success_messages.comment_updated'),
+            'activity' => $this->last_activity( $comment->commentable_type, $comment->commentable_id  ),
         ];
 
         $response = $this->get_response( $resource, $message );
@@ -140,6 +146,10 @@ class Comment_Controller {
     public function destroy( WP_REST_Request $request ) {
         $comment_id = $request->get_param( 'comment_id' );
         $comment    = Comment::find( $comment_id );
+
+        $resource_type = $comment->resource_type;
+        $resource_id = $comment->resource_id;
+
         do_action( 'cpm_comment_delete', $comment, false );
         $this->detach_files( $comment );
         $comment->replies()->delete();
@@ -147,7 +157,8 @@ class Comment_Controller {
         $comment->delete();
 
         $message = [
-            'message' => pm_get_text('success_messages.comment_deleted')
+            'message' => pm_get_text('success_messages.comment_deleted'),
+            'activity' => $this->last_activity( $resource_type, $resource_id ),
         ];
 
         return $this->get_response(false, $message);

@@ -49,8 +49,8 @@
                     );
                 }
             });
-            
-            return h('span', {}, components);
+
+            return h('span', {class: 'pm-action-wrap'}, components);
         }
     }
 

@@ -29,7 +29,6 @@
             if (tinymce.get(this.editor_id)) {
                 tinymce.execCommand( 'mceRemoveEditor', false, this.editor_id );
             }
-
             // Instantiate the editor
             var settings = {
                 selector: 'textarea#' + self.editor_id,
@@ -37,6 +36,7 @@
                 placeholder: self.__( 'Write a comment...', 'wedevs-project-manager'),
                 branding: false,
                 menubar: false,
+                auto_focus : self.editor_id,
                 setup: function (editor) {
                     editor.on('change', function () {
                         self.content.html = editor.getContent();
@@ -46,6 +46,11 @@
                     });
                     editor.on('NodeChange', function () {
                         self.content.html = editor.getContent();
+                    });
+
+                    editor.on('init', function () {
+                        editor.selection.select(editor.getBody(), true);
+                        editor.selection.collapse(false);
                     });
                 },
 
@@ -61,7 +66,10 @@
                     'Trebuchet MS=trebuchet ms,geneva;'+
                     'Verdana=verdana,geneva;',
                 plugins: PM_Vars.todo_list_text_editor.plugins,
-                toolbar1: 'shortcodes bold italic strikethrough bullist numlist alignleft aligncenter alignjustify alignright link wp_adv',
+                valid_elements : 'a[href|target=_blank],strong,i,em,b,br,p,span[style],code,pre',
+                extended_valid_elements:'span[class|style|id|name|title|pm-user-id|pm-user]',
+                paste_word_valid_elements: "a[href|target=_blank],b,strong,i,em,p,span[style],br,code,pre",
+                toolbar1: 'shortcodes bold italic strikethrough bullist numlist alignleft aligncenter alignjustify alignright link textcolor blockquote underline forecolor',
                 toolbar2: 'formatselect forecolor backcolor underline blockquote hr code',
                 toolbar3: 'fontselect fontsizeselect removeformat undo redo',
             };

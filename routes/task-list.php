@@ -12,7 +12,8 @@ $router->get( 'projects/{project_id}/task-lists', 'WeDevs/PM/Task_List/Controlle
 
 $router->post( 'projects/{project_id}/task-lists', 'WeDevs/PM/Task_List/Controllers/Task_List_Controller@store' )
 	->permission(['WeDevs\PM\Core\Permissions\Create_Task_List'])
-    ->validator( 'WeDevs\PM\Task_List\Validators\Create_Task_List' );
+	->validator( 'WeDevs\PM\Task_List\Validators\Create_Task_List' )
+	->sanitizer( 'WeDevs\PM\Task_List\Validators\Task_List_Sanitizer' );
 
 
 $router->get( 'projects/{project_id}/task-lists/{task_list_id}', 'WeDevs/PM/Task_List/Controllers/Task_List_Controller@show' )
@@ -20,7 +21,8 @@ $router->get( 'projects/{project_id}/task-lists/{task_list_id}', 'WeDevs/PM/Task
 
 $router->post( 'projects/{project_id}/task-lists/{task_list_id}/update', 'WeDevs/PM/Task_List/Controllers/Task_List_Controller@update' )
 	->permission(['WeDevs\PM\Core\Permissions\Edit_Task_List'])
-    ->validator( 'WeDevs\PM\Task_List\Validators\Update_Task_List' );
+	->validator( 'WeDevs\PM\Task_List\Validators\Update_Task_List' )
+	->sanitizer( 'WeDevs\PM\Task_List\Validators\Task_List_Sanitizer' );
 
 
 $router->post( 'projects/{project_id}/task-lists/{task_list_id}/delete', 'WeDevs/PM/Task_List/Controllers/Task_List_Controller@destroy' )
@@ -35,4 +37,10 @@ $router->put( 'projects/{project_id}/task-lists/{task_list_id}/detach-users', 'W
 $router->post( 'projects/{project_id}/task-lists/privacy/{task_list_id}', 'WeDevs/PM/Task_List/Controllers/Task_List_Controller@privacy' )
 	->permission(['WeDevs\PM\Core\Permissions\Edit_Task_List']);
 
-$router->post( 'projects/{project_id}/lists/sorting', 'WeDevs/PM/Task_List/Controllers/Task_List_Controller@list_sorting' );
+$router->post( 'projects/{project_id}/lists/sorting', 'WeDevs/PM/Task_List/Controllers/Task_List_Controller@list_sorting' )
+	->permission(['WeDevs\PM\Core\Permissions\Project_Manage_Capability']);
+
+$router->get( 'projects/{project_id}/lists/search', 'WeDevs/PM/Task_List/Controllers/Task_List_Controller@list_search' )
+	->permission(['WeDevs\PM\Core\Permissions\Access_Project']);
+
+

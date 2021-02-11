@@ -2,6 +2,7 @@
     <div class="pm-wrap pm-front-end">
 
         <pm-header></pm-header>
+        <pm-heder-menu></pm-heder-menu>
 
         <div v-if="loading" class="pm-data-load-before" >
             <div class="loadmoreanimation">
@@ -15,7 +16,7 @@
             </div>
         </div>
 
-        <div v-else>
+        <div class="pm-individual-discussion" v-else>
             <div v-if="discuss" id="pm-signle-message"> 
                 <div class="pm-single">
                     <h3 class="pm-box-title">
@@ -32,21 +33,15 @@
                             {{ __( 'By', 'wedevs-project-manager') }}
                             <a :href="myTaskRedirect(discuss.creator.data.id)" :title="discuss.creator.data.display_name">
                                 {{ discuss.creator.data.display_name }}
-                            </a> {{ __( 'on', 'wedevs-project-manager') }} {{ discuss.created_at.date }} {{ discuss.created_at.time }}             
+                            </a> {{ __( 'on', 'wedevs-project-manager') }} {{ taskDateFormat(discuss.created_at.date) }}, {{ dateTimeFormat(discuss.created_at.timestamp) }}            
                         </div>
                     </h3>
                     <div class="pm-entry-detail">
                         <div v-html="discuss.description"></div>
 
                         <ul class="pm-attachments" v-if="discuss.files.data.length">
-                            <li v-for="file in discuss.files.data">
-                                <a v-if="file.type == 'image'" v-pm-pretty-photo class="pm-colorbox-img" :href="getDownloadUrl(file.attachment_id)" :title="file.name" target="_blank">
-                                    <img class="pm-content-img-size" :src="file.thumb" :alt="file.name">
-                                </a>
-
-                                <a v-else class="pm-colorbox-img" :href="getDownloadUrl(file.attachment_id)" :title="file.name" target="_blank">
-                                    <img class="pm-content-img-size" :src="file.thumb" :alt="file.name">
-                                </a>
+                            <li v-for="file in discuss.files.data" :key="file.id">
+                                <pm-file :file="file" />
                             </li>
                         </ul>
 
@@ -77,7 +72,7 @@
                                 {{ __( 'on', 'wedevs-project-manager') }}           
                                 <span class="pm-date">
 
-                                    <time :datetime="comment.created_at.date +' ' + comment.created_at.time" :title="comment.created_at.date +' ' + comment.created_at.time">{{comment.created_at.date +' ' + comment.created_at.time}}</time>
+                                     <time :datetime="getFullDate( comment.created_at.datetime )" :title="getFullDate( comment.created_at.datetime )">{{ relativeDate(comment.created_at.datetime) }}</time>
                                     
                                 </span>
 
@@ -95,14 +90,8 @@
                                 <div v-html="comment.content"></div>
 
                                 <ul class="pm-attachments" v-if="comment.files.data.length">
-                                    <li v-for="file in comment.files.data">
-                                        <a v-if="file.type == 'image'" v-pm-pretty-photo class="pm-colorbox-img" :href="getDownloadUrl(file.attachment_id)" :title="file.name" target="_blank">
-                                            <img class="pm-content-img-size" :src="file.thumb" :alt="file.name">
-                                        </a>
-
-                                        <a v-else class="pm-colorbox-img" :href="getDownloadUrl(file.attachment_id)" :title="file.name" target="_blank">
-                                            <img class="pm-content-img-size" :src="file.thumb" :alt="file.name">
-                                        </a>
+                                    <li v-for="file in comment.files.data" :key="file.id">
+                                        <pm-file :file="file" />
                                     </li>
                                 </ul>
 
@@ -132,11 +121,20 @@
 </template>
 
 <style lang="less">
+    .pm-individual-discussion {
+        margin-top: 10px;
+    }
     
-        .pm-content-img-size {
-            height: 80px;
-            width: 80px;
+    .pm-content-img-size {
+        height: 80px;
+        width: 80px;
+    }
+    .pm-individual-discussion {
+        .pm-comment-form-wrap {
+            margin-top: 10px;
         }
+    }
+
     
 
 </style>
@@ -160,6 +158,9 @@
             return{
                 loading: true,
             }
+        },
+        created () {
+            //console.log(this.$route);
         },
         computed: {
             discuss () {

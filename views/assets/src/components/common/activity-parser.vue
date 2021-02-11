@@ -5,7 +5,16 @@
 <script>
     
     export default {
-        props : ['activity'],
+        props :{
+            activity: {
+                type: Object,
+                required: true
+            },
+            page: {
+                type: String,
+                default: ''
+            }
+        },
         data (){
             return {
 
@@ -54,16 +63,20 @@
                     'meta.old_project_title': "<a href='"+ this.resolve_url( ) + "'>" + obj.meta.old_project_title + "</a>",
                     'meta.project_title_new': "<a href='"+ this.resolve_url( ) + "'>" + obj.meta.project_title_new + "</a>",
                     'meta.discussion_board_title': "<a href='"+ this.resolve_url() + "'>" + obj.meta.discussion_board_title + "</a>",
+                    'meta.deleted_discussion_board_title': "<strong>" + obj.meta.deleted_discussion_board_title + "</strong>",
                     'meta.discussion_board_title_old': "<a href='"+ this.resolve_url() + "'>" + obj.meta.discussion_board_title_old + "</a>",
                     'meta.discussion_board_title_new': "<a href='"+ this.resolve_url() + "'>" + obj.meta.discussion_board_title_new + "</a>",
                     'meta.task_list_title': "<a href='"+ this.resolve_url() + "'>" + obj.meta.task_list_title + "</a>",
+                    'meta.deleted_task_list_title': "<strong>" + obj.meta.deleted_task_list_title + "</strong>",
                     'meta.task_list_title_old': "<a href='"+ this.resolve_url( ) + "'>" + obj.meta.task_list_title_old + "</a>",
                     'meta.task_list_title_new': "<a href='"+ this.resolve_url() + "'>" + obj.meta.task_list_title_new + "</a>",
                     'meta.milestone_title': "<a href='"+ this.resolve_url( ) + "'>" + obj.meta.milestone_title + "</a>",
+                    'meta.deleted_milestone_title': "<strong>" + obj.meta.deleted_milestone_title + "</strong>",
                     'meta.milestone_title_old': "<a href='"+ this.resolve_url() + "'>" + obj.meta.milestone_title_old + "</a>",
                     'meta.milestone_title_new': "<a href='"+ this.resolve_url( ) + "'>" + obj.meta.milestone_title_new + "</a>",
                     'meta.task_title': "<a href='"+ this.resolve_url() + "'>" + obj.meta.task_title + "</a>",
-                    'meta.task_title_old': "<a href='"+ this.resolve_url( ) + "'>" + obj.meta.task_title_old + "</a>",
+                    'meta.deleted_task_title': "<strong>" + obj.meta.deleted_task_title + "</strong>",
+                    'meta.task_title_old': "<a href='"+ this.resolve_url() + "'>" + obj.meta.task_title_old + "</a>",
                     'meta.task_title_new': "<a href='"+ this.resolve_url() + "'>" + obj.meta.task_title_new + "</a>",
                     'meta.file_title': "<a href='"+ this.resolve_url() + "'>" + obj.meta.file_title + "</a>",
                     'meta.file_title_old': "<a href='"+ this.resolve_url() + "'>" + obj.meta.file_title_old + "</a>",
@@ -103,7 +116,7 @@
                 return value;
             },
 
-            resolve_url(){
+            resolve_url () {
                 //return this.$router.resolve({ name : name, params: params }).href;
                 var url,
                 resource_type= this.activity.resource_type,
@@ -114,7 +127,12 @@
                 
                 switch (resource_type) {
                     case 'task':
-                        url = this.$router.resolve({ name : 'lists_single_task' , params: { project_id: project_id, task_id: resource_id }  }).href;
+                        if (this.page == 'project') {
+                            url = this.$router.resolve({ name : 'activity_single_task' , params: { project_id: project_id, task_id: resource_id }  }).href;
+                        } else {
+                            url = this.$router.resolve({ name : 'lists_single_task' , params: { project_id: project_id, task_id: resource_id }  }).href;
+                        }
+                        
                         break;
                     case 'project':
                         url =  this.$router.resolve({ name : 'pm_overview' , params: { project_id: resource_id }  }).href;
@@ -131,6 +149,9 @@
                         break;
                     case 'task_list':
                         url =  this.$router.resolve({ name : 'single_list' , params: { project_id: project_id, list_id: resource_id  }  }).href;
+                        break;
+                    case 'file':
+                        url =  this.$router.resolve({ name : 'singleFile' , params: { project_id: project_id, fileId: resource_id, folder_id: meta.parent  }  }).href;
                         break;
                     default:
                         url = '#';

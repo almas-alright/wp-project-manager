@@ -21,6 +21,15 @@ export default {
     },
 
     methods: {
+        enableDisable (key, status) {
+            status = status || '';
+
+            if(status == '') {
+                this[key] = this[key] ? false : true;
+            } else {
+                this[key] = status;
+            }
+        },
         __ (text, domain) {
             return __(text, domain);
         },
@@ -87,6 +96,25 @@ export default {
             }
         },
 
+        getFullDate (date) {
+            if ( date == '' ) {
+                return;
+            } 
+            date = new Date(date);
+            
+            return pm.Moment(date).format('dddd, MMMM D YYYY, H:mm:ss');
+        },
+
+        relativeDate (date) {
+            if ( !date ) {
+                return;
+            }
+            
+            date = new Date(date);
+
+            return pm.Moment(date).fromNow();
+        },
+
         /**
          * WP settings date format convert to pm.Moment date format with time zone
          * 
@@ -95,16 +123,32 @@ export default {
          * @return string      
          */
         shortDateFormat ( date ) {
-            if ( date == '' ) {
+
+            if ( !date ) {
                 return;
             }      
 
             date = new Date(date);
             date = pm.Moment(date).format('YYYY-MM-DD');
 
-            var format = 'MMM DD';
+            var format = 'DD MMM';
 
             return pm.Moment( date ).format( String( format ) );
+        },
+
+        shortTimeFormat ( date ) {
+            if ( date == '' ) {
+                return;
+            }      
+
+            date = new Date(date);
+            var format = 'hh:mm a';
+
+            return pm.Moment( date ).format( String( format ) );
+        },
+
+        ucfirst (word) {
+            return word.replace(/\w/, c => c.toUpperCase())
         },
 
         
@@ -112,7 +156,7 @@ export default {
             if ( !date ) {
                 return;
             }
-
+            
             date = new Date(date);
             return pm.Moment(date).format('hh:mm a');
         },
@@ -150,6 +194,18 @@ export default {
             date = new Date(date);
             return pm.Moment(date).format('MMM D');
         },
+        
+        /**
+         * ISO_8601 Date format convert to pm.Moment date format
+         * 
+         * @param  string date 
+         * 
+         * @return string      
+         */
+        dateISO8601Format ( date ) {
+          return pm.Moment( date ).format();
+        },
+
         getSettings (key, pre_define, objKey ) {
 
             var pre_define  = typeof pre_define == 'undefined' ? false : pre_define,
@@ -283,6 +339,10 @@ export default {
                         res.responseJSON.message.map( function( value, index ) {
                             pm.Toastr.error(value);
                         });
+                    }
+                    
+                    if(typeof args.callback === 'function'){
+                        args.callback(res);
                     }
                     
                 }
@@ -425,8 +485,6 @@ export default {
             self.httpRequest({
                 url:self.base_url + '/pm/v2/projects/'+ args.project_id + '?' + conditions ,
                 success (res) {
-                    
-
                     if (typeof args.callback === 'function' ) {
                         args.callback.call(self, res);
                     }
@@ -660,7 +718,7 @@ export default {
 
 
         userTaskProfileUrl ( user_id ) {
-            return PM_Vars.ajaxurl + '?page=pm_task#/user/' + user_id;
+            return this.myTaskRedirect( user_id );
         },
 
         /**
@@ -979,6 +1037,10 @@ export default {
         myTaskRedirect (userid) {
             var current_user = PM_Vars.current_user.ID;
 
+            if (!this.canShowMyTaskRedirect(userid) ) {
+                return false;
+            }
+
             if (!PM_Vars.is_pro) {
                 return this.$router.resolve({ name: 'my-tasks'}).href;
 
@@ -990,6 +1052,18 @@ export default {
 
             return this.$router.resolve({name: 'mytask-tasks', params: {user_id: userid}}).href;
 
+        },
+
+        canShowMyTaskRedirect (userid) {
+            var current_user = PM_Vars.current_user.ID;
+            if (this.has_manage_capability()) {
+                return true;
+            }
+
+            if (current_user == userid) {
+                return true;
+            }
+            return false;
         },
 
         fileDownload (fileId) {

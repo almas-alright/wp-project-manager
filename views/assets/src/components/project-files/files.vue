@@ -1,7 +1,9 @@
 <template>
-    <div class="pm-wrap pm-front-end">
+    <div class="pm-wrap  pm-front-end">
         <pm-header></pm-header>
-        <div v-if="!is_pro">
+        <pm-heder-menu></pm-heder-menu>
+        
+        <div class="pm-files" v-if="!is_pro">
             <div v-if="loading" class="pm-data-load-before" >
                 <div class="loadmoreanimation">
                     <div class="load-spinner">
@@ -17,19 +19,13 @@
 
             <div v-if="!loading">
                 <ul class="pm-folders-list" v-if="files.length">
-                    <li class="file" v-for="file in files">
+                    <li class="file" v-for="file in files" :key="file.id">
 
                         <div class="ff-content">
                             <div>
                                 <div class="image-content">
                                     
-                                    <a v-if="file.type == 'image'" v-pm-pretty-photo class="pm-colorbox-img" :href="getDownloadUrl(file.attachment_id)" :title="file.name" target="_blank">
-                                        <img :src="file.thumb" :alt="file.name">
-                                    </a>
-
-                                    <a v-else class="pm-colorbox-img" :href="getDownloadUrl(file.attachment_id)" :title="file.name" target="_blank">
-                                        <img :src="file.thumb" :alt="file.name">
-                                    </a>
+                                    <pm-file :file="file" />
                                     <div class="item-title" v-if="file.name">{{ file.name.slice(0, 20) }}</div>
                                     <span class="text">
                                         {{ __('Attached to', 'wedevs-project-manager') }} 
@@ -58,17 +54,23 @@
                 </ul>
 
                 <ul v-if="!files.length">
-                    <li>{{ __('No result found!', 'wedevs-project-manager') }}</li>
+                    <li>{{ __('No results found.', 'wedevs-project-manager') }}</li>
                 </ul>
 
             </div>
         </div>
-        <div v-else>
+        <div class="pm-files" v-else>
             <do-action :hook="'pm_file_footer'"></do-action>
         </div>
     </div>
 
 </template>
+
+<style lang="less">
+    .pm-files {
+        margin-top: 10px;
+    }
+</style>
 
 <script>
 
